@@ -140,6 +140,37 @@ python main.py "C:\Videos\party.mp4" result.sgf
 
 Если выходной файл не указан, SGF сохраняется рядом с видео с тем же именем и расширением `.sgf`. Рядом с проектом должен находиться файл модели `model.pt`.
 
+### Google Colab
+
+Скопируйте в одну ячейку (%%bash) и выполните. Путь к видео задайте в `VIDEO_PATH`. При повторном запуске репозиторий не клонируется заново, а обновляется; зависимости ставятся без sente, затем sente отдельно (обход ошибки на Python 3.12).
+
+```bash
+cd /content
+VIDEO_PATH='/content/drive/MyDrive/Го/video_2026-03-15_21-24-20.mp4'
+
+# Обновить или клонировать репозиторий
+if [ -d "GoGame-Detection" ]; then
+  cd GoGame-Detection && git fetch origin && git checkout convert-videofile 2>/dev/null; git pull origin convert-videofile 2>/dev/null; cd /content
+else
+  git clone https://github.com/Wzhoooh/GoGame-Detection.git
+  cd GoGame-Detection && git checkout convert-videofile 2>/dev/null; cd /content
+fi
+
+cd GoGame-Detection
+
+# Зависимости без sente (чтобы установился ultralytics и др.)
+grep -v '^sente' requirements.txt > requirements_no_sente.txt 2>/dev/null || true
+pip install -r requirements_no_sente.txt
+
+# sente отдельно
+pip install "sente>=0.4.2,<0.5" || { echo "Ошибка sente. Выберите Runtime -> Change runtime type -> Python 3.11"; exit 1; }
+
+echo "----запуск----"
+python main.py "$VIDEO_PATH"
+```
+
+Если установка sente снова падает, в Colab выберите **Runtime → Change runtime type → Python 3.11** и перезапустите ячейки, затем выполните эту ячейку ещё раз.
+
 ---
 
 

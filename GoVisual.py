@@ -96,74 +96,6 @@ class GoVisual:
             moves.append(move)
         return moves
     
-    def initial_position(self):
-        """
-        Display the initial position with the first move
-
-        Returns:
-        --------
-        numpy array
-            The resulted board drawn with only the first played move
-        """
-        self.track_progress = False
-        self.cursor = 1
-
-    def final_position(self):
-        """
-        Display the final position 
-
-        Returns:
-        --------
-        numpy array
-            The resulted board drawn with all the played moves 
-        """
-        self.track_progress = True
- 
-
-    def current_turn(self):
-        """
-        Display whose turn to play
-
-        Returns:
-        --------
-        string
-            The color of the current turn
-        """
-        if self.last_move.get_stone().name == 'BLACK':
-            return 'WHITE' 
-        elif self.last_move.get_stone().name == 'WHITE' or self.cursor == 0:
-            return 'BLACK'
-        
-    def previous(self):
-        """
-        Display the previous position
-
-        Returns:
-        --------
-        numpy array
-            The board one move before the displayed position
-        """
-        self.track_progress = False
-        if self.cursor > 1:
-            self.cursor -= 1
-
-
-    def next(self):
-        """
-        Display the next position
-
-        Returns:
-        --------
-        numpy array
-            The board one move after the displayed position
-        """
-        self.track_progress = False
-        if self.cursor < len(self.get_moves()):
-            self.cursor +=1
-        
-        if self.cursor == len(self.get_moves()):
-            self.track_progress = True
-
     def current_position(self):
         """
         Display the current position
@@ -234,24 +166,6 @@ class GoVisual:
             cv2.circle(board, ((row+1)*square_size, (col+1)*square_size), circle_radius, color=stone_color, thickness=-1) 
 
         return board
-
-    def load_game_from_sgf(self, sgf_url):
-        """
-        Load a game from an SGF (Smart Game Format) file.
-
-        This function loads a game from the specified SGF file, plays the default sequence,
-        and returns the current position on the board.
-        This serves as intialization, to use the next/previous buttons, we should call and the show the output of self.current_position()
-
-        Args:
-            sgf_url (str): The URL or file path of the SGF file.
-
-        Returns:
-            Tuple: A tuple containing the current position on the board.
-        """
-        self.game = sente.sgf.load(sgf_url)
-        self.game.play_sequence(self.game.get_default_sequence())
-        return self.current_position()
 
     def draw_transparent(self, detected_state):
         """

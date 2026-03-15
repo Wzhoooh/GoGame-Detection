@@ -1,98 +1,90 @@
-import threading
-import copy
+"""
+Конвертация видеофайла с записью партии Го в файл SGF.
+Использование: python main.py <путь_к_видео> [путь_к_выходному_sgf]
+"""
+import argparse
+import sys
 import traceback
-from ultralytics import YOLO
-import cv2
-from GoGame import *
-from GoBoard import *
-from GoVisual import *
 
-def processing_thread():
-    global ProcessFrame, Process
-    
+import cv2
+from ultralytics import YOLO
+
+from GoBoard import GoBoard
+from GoGame import GoGame
+from GoVisual import GoVisual
+import sente
+
+
+def video_to_sgf(video_path: str, output_path: str, model_path: str = "model.pt") -> None:
+    """
+    Читает видео, распознаёт доску и ходы, записывает партию в SGF.
+    """
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise RuntimeError(f"Не удалось открыть видео: {video_path}")
+
+    model = YOLO(model_path)
+    game = sente.Game()
+    go_visual = GoVisual(game)
+    go_board = GoBoard(model)
+    pipeline = GoGame(game, go_board, go_visual, transparent_mode=False)
+
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     initialized = False
-    while Process:
-        if not ProcessFrame is None:
-            pass
+    frame_index = 0
+
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            frame_index += 1
+            if total_frames > 0 and frame_index % 50 == 0:
+                print(f"Обработано кадров: {frame_index}/{total_frames}")
+
             try:
                 if not initialized:
-                    game_plot, sgf_text = game.initialize_game(ProcessFrame)
+                    pipeline.initialize_game(frame)
                     initialized = True
                 else:
-                    game_plot, sgf_text = game.main_loop(ProcessFrame)
-                cv2.imshow("master", game_plot)
-                # cv2.imshow("annotated", game.board_detect.annotated_frame)
-                # cv2.imshow("transformed", game.board_detect.transformed_image)
-                
-                
+                    pipeline.main_loop(frame)
             except Exception as e:
-                # print('empty frame', type(e), e.args, e)
-                traceback.print_exc()
-                # exception_info = {
-                #     'exception_type': type(e).__name__,
-                #     'exception_message': str(e),
-                #     'traceback': traceback.format_exc()
-                # }
+                # Пропуск кадров, где доска не распознаётся
+                if frame_index <= 1:
+                    raise
+                continue
 
-                # # Save the frame along with the exception information
-                # cv2.imwrite('error_logs/error_frame.jpg', ProcessFrame)
-                # cv2.imwrite('error_logs/error_annotated_frame.jpg', game.annotated_frame)
-                
-                
-                # # Optionally, you can save the exception information to a file or log it
-                # with open('error_logs/error_log.txt', 'w') as log_file:
-                #     log_file.write(str(exception_info))
-                # cv2.imwrite(f"{e}.jpg", ProcessFrame)
-        
+        sgf_text = pipeline.get_sgf()
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(sgf_text)
+        print(f"SGF сохранён: {output_path}")
 
-        key_pressed = cv2.waitKey(1) & 0xFF
-        
-        if key_pressed == ord('p'):
-            go_visual.previous()
-
-        if key_pressed == ord('n'):
-            go_visual.next()
-        
-        if key_pressed == ord('i'):
-            go_visual.initial_position()
-
-        if key_pressed == ord('f'):
-            go_visual.final_position()
-
-        if key_pressed == ord('q'):
-            Process = False
-            break  # Break the loop if 'q' is pressed
+    finally:
+        cap.release()
 
 
-model = YOLO('model.pt')
-game = sente.Game()
-go_visual = GoVisual(game)
-go_board = GoBoard(model)
-game = GoGame(game, go_board, go_visual, True)
+def main():
+    parser = argparse.ArgumentParser(description="Конвертация видео партии Го в SGF")
+    parser.add_argument("video", help="Путь к видеофайлу")
+    parser.add_argument(
+        "output",
+        nargs="?",
+        default=None,
+        help="Путь к выходному SGF (по умолчанию: имя видео с расширением .sgf)",
+    )
+    parser.add_argument("--model", default="model.pt", help="Путь к модели YOLO (по умолчанию: model.pt)")
+    args = parser.parse_args()
+
+    if args.output is None:
+        base = args.video.rsplit(".", 1)[0] if "." in args.video else args.video
+        args.output = base + ".sgf"
+
+    try:
+        video_to_sgf(args.video, args.output, args.model)
+    except Exception as e:
+        traceback.print_exc()
+        sys.exit(1)
 
 
-ProcessFrame = None
-Process = True
-
-process_thread = threading.Thread(target=processing_thread, args=())
-process_thread.start()
-
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
-    
-    ProcessFrame = copy.deepcopy(frame)
-    
-    cv2.imshow('Video Stream', frame)
-    
-    key_pressed = cv2.waitKey(1) & 0xFF
-
-    if key_pressed == ord('q'):
-        Process = False
-        break 
-
-cap.release()
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+    main()

@@ -125,11 +125,20 @@ pip install -r requirements.txt
 ```
 
 
-### 🤖 Running the script
+### 🤖 Запуск (конвертация видео в SGF)
 
 ```sh
-python main.py
+python main.py <путь_к_видео> [путь_к_выходному_sgf]
 ```
+
+Примеры:
+```sh
+python main.py game.mp4
+python main.py game.mp4 output.sgf
+python main.py "C:\Videos\party.mp4" result.sgf
+```
+
+Если выходной файл не указан, SGF сохраняется рядом с видео с тем же именем и расширением `.sgf`. Рядом с проектом должен находиться файл модели `model.pt`.
 
 ---
 

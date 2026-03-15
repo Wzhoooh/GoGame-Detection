@@ -105,29 +105,12 @@ class GoBoard:
         self.state = np.zeros((19, 19, 2))
         
         for stone in white_stones_transf:
-            
-            # Draw the position of the stone for testing 
-            cv2.circle(self.transformed_image, np.array(stone).astype(dtype=np.int32), 3, (0, 0, 255), 2)
-            
             nearest_corner = self.find_nearest_corner(transformed_intersections, stone)
             self.state[self.map[nearest_corner][1], self.map[nearest_corner][0], 1] = 1
 
-            # Draw the distance between the center of the stones and the intersection it was assigned to for testing
-            cv2.line(self.transformed_image, (int(stone[0]), int(stone[1])), nearest_corner, (0, 255, 255), 2)
-            
-                
         for stone in black_stones_transf:
-            
-            # Draw the position of the stone for testing 
-            cv2.circle(self.transformed_image, np.array(stone).astype(dtype=np.int32), 3, (0, 0, 255), 2)
-            
             nearest_corner = self.find_nearest_corner(transformed_intersections, stone)
             self.state[self.map[nearest_corner][1], self.map[nearest_corner][0], 0] = 1
-            
-            # Draw the distance between the center of the stones and the intersection it was assigned to for testing
-            cv2.line(self.transformed_image, (int(stone[0]), int(stone[1])), nearest_corner, (0, 255, 255), 2)
-        
-        # imshow_(self.transformed_image)
     
     def find_nearest_corner(self, transformed_intersections, stone):
         """

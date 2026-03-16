@@ -175,25 +175,20 @@ class GoGame:
 
         # Handle the case where more than one stone was added
         if len(black_stone_indices) + len(white_stone_indices) > 1:
-            print("[GoGame Log] - More than one stone was added!")
+            # Слишком много расхождений между кадрами — пропускаем кадр
             return
 
         # Play a move for a newly added black stone
         if len(black_stone_indices) != 0:
             self.play_move(black_stone_indices[0][0] + 1, black_stone_indices[0][1] + 1, 1)  # 1 is black_stone
             self.moves.append(('B', (black_stone_indices[0][0], 18 - black_stone_indices[0][1])))
-            print(f"[GoGame Log] - Black stone was played at ({black_stone_indices[0][0], 18 - black_stone_indices[0][1]})")
             return
 
         # Play a move for a newly added white stone
         if len(white_stone_indices) != 0:
             self.play_move(white_stone_indices[0][0] + 1, white_stone_indices[0][1] + 1, 2)  # 2 is white_stone
             self.moves.append(('W', (white_stone_indices[0][0], 18 - white_stone_indices[0][1])))
-            print(f"[GoGame Log] - White stone was played at ({white_stone_indices[0][0], 18 - white_stone_indices[0][1]})")
             return
-
-        # Print a message if no moves were detected
-        print("No new move detected!")
 
     def auto_play_game_moves(self):
         """

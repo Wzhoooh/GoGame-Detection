@@ -15,15 +15,28 @@ from GoVisual import GoVisual
 import sente
 
 
-def video_to_sgf(video_path: str, output_path: str, model_path: str = "model.pt") -> None:
+def video_to_sgf(
+    video_path: str,
+    output_path: str,
+    model_path: str = "model.pt",
+    device: str = "",
+) -> None:
     """
     Читает видео, распознаёт доску и ходы, записывает партию в SGF.
+    device: '' — авто (GPU при наличии CUDA), '0' или 'cuda' — GPU, 'cpu' — CPU.
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Не удалось открыть видео: {video_path}")
 
     model = YOLO(model_path)
+    if device:
+        model.to(device)
+        print(f"YOLO: устройство {device}")
+    else:
+        # По умолчанию ultralytics использует GPU при наличии CUDA
+        import torch
+        print(f"YOLO: авто (GPU доступна: {torch.cuda.is_available()})")
     game = sente.Game()
     go_visual = GoVisual(game)
     go_board = GoBoard(model)
@@ -73,6 +86,11 @@ def main():
         help="Путь к выходному SGF (по умолчанию: имя видео с расширением .sgf)",
     )
     parser.add_argument("--model", default="model.pt", help="Путь к модели YOLO (по умолчанию: model.pt)")
+    parser.add_argument(
+        "--device",
+        default="",
+        help="Устройство: '' (авто), '0' или 'cuda' — GPU, 'cpu' — CPU (по умолчанию: авто)",
+    )
     args = parser.parse_args()
 
     if args.output is None:
@@ -80,7 +98,7 @@ def main():
         args.output = base + ".sgf"
 
     try:
-        video_to_sgf(args.video, args.output, args.model)
+        video_to_sgf(args.video, args.output, args.model, args.device)
     except Exception as e:
         traceback.print_exc()
         sys.exit(1)

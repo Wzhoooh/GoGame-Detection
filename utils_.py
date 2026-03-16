@@ -669,7 +669,9 @@ def get_corners(results, padding=None):
 
     """
     
-    corner_boxes = np.array(results[0].boxes.xyxy[results[0].boxes.cls == 2])
+    # boxes.xyxy и boxes.cls теперь могут быть на CUDA, поэтому сначала переносим на CPU
+    corner_boxes_tensor = results[0].boxes.xyxy[results[0].boxes.cls == 2]
+    corner_boxes = corner_boxes_tensor.detach().cpu().numpy()
     
     if len(corner_boxes) < 4:
         raise Exception(f"[BoardDetectionException]: Incorrect number of corners! Detected {len(corner_boxes)} corners")
@@ -677,7 +679,8 @@ def get_corners(results, padding=None):
 
     corner_boxes_ = non_max_suppression(corner_boxes)
 
-    model_board_edges = results[0].boxes.xyxy[results[0].boxes.cls == 1][0]
+    model_board_edges_tensor = results[0].boxes.xyxy[results[0].boxes.cls == 1][0]
+    model_board_edges = model_board_edges_tensor.detach().cpu().numpy()
     
     corner_boxes = get_corners_inside_box(corner_boxes_, np.array(model_board_edges))
 
@@ -729,16 +732,21 @@ def get_key_points(results, class_, perspective_matrix, output_edge=600):
 
     """
     # Extract raw key points from the detection results for the specified class
-    key_points = results[0].boxes.xywh[results[0].boxes.cls == class_].reshape((-1, 4))
+    key_points_tensor = results[0].boxes.xywh[results[0].boxes.cls == class_]
     
+    if key_points_tensor is None or key_points_tensor.numel() == 0:
+        return np.empty((0, 2), dtype=np.float32)
 
-    if not key_points is None:
-        if len(key_points) != 0:
-            key_points = np.array(key_points[:, [0, 1]])
-            key_points_transf = cv2.perspectiveTransform(key_points.reshape((1, -1, 2)), perspective_matrix).reshape((-1, 2))
-            return key_points_transf[(key_points_transf[:, 0:2] >= 0).all(axis=1) & (key_points_transf[:, 0:2] <= output_edge).all(axis=1)]
+    key_points = key_points_tensor.detach().cpu().numpy().reshape((-1, 4))
 
-    return np.array(key_points)
+    key_points_xy = key_points[:, [0, 1]]
+    key_points_transf = cv2.perspectiveTransform(
+        key_points_xy.reshape((1, -1, 2)), perspective_matrix
+    ).reshape((-1, 2))
+    return key_points_transf[
+        (key_points_transf[:, 0:2] >= 0).all(axis=1)
+        & (key_points_transf[:, 0:2] <= output_edge).all(axis=1)
+    ]
 
 
 def add_lines_in_the_edges(lines, type):

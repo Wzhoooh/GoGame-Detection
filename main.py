@@ -8,6 +8,7 @@ import traceback
 
 import cv2
 from ultralytics import YOLO
+from tqdm.auto import tqdm
 
 from GoBoard import GoBoard
 from GoGame import GoGame
@@ -46,14 +47,18 @@ def video_to_sgf(
     initialized = False
     frame_index = 0
 
+    # Прогресс-бар по кадрам: в терминале — текстовый, в Colab/Jupyter — виджет
+    if total_frames > 0:
+        frame_iter = tqdm(range(total_frames), desc="Обработка кадров")
+    else:
+        frame_iter = tqdm(desc="Обработка кадров", unit="frame")
+
     try:
-        while True:
+        for _ in frame_iter:
             ret, frame = cap.read()
             if not ret:
                 break
             frame_index += 1
-            if total_frames > 0 and frame_index % 50 == 0:
-                print(f"Обработано кадров: {frame_index}/{total_frames}")
 
             try:
                 if not initialized:
@@ -65,6 +70,8 @@ def video_to_sgf(
                 # Пропуск кадров, где доска не распознаётся
                 if frame_index <= 1:
                     raise
+                # Можно подсвечивать ошибки в прогресс-баре (не спамя в stdout)
+                frame_iter.set_postfix(error=type(e).__name__)
                 continue
 
         sgf_text = pipeline.get_sgf()
